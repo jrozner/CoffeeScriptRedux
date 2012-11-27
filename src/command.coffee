@@ -362,12 +362,23 @@ else
 
   # choose input source
 
-  if options.input?
-    # TODO: handle directories
-    fs.readFile options.input, (err, contents) ->
+  walkPath = (path) ->
+    fs.stat path, (err, stats) ->
       throw err if err?
-      input = contents
-      do processInput
+      if stats.isDirectory()
+        fs.readdir path, (err, contents) ->
+          throw err if err?
+          for file in contents
+            walkPath "#{path}/#{file}"
+      else if stats.isFile()
+        if path.match /\S+\.coffee$/
+          fs.readFile path, (err, contents) ->
+            throw err if err?
+            input = contents
+            do processInput
+
+  if options.input?
+    walkPath options.input
   else if options.watch?
     options.watch # TODO: watch
   else if options.cli?
